@@ -299,7 +299,7 @@ namespace BackEnd {
 			return str;
 		}
 	System::Void MyForm_FormClosing(System::Object^ sender, System::Windows::Forms::FormClosingEventArgs^ e) {
-		off();
+		if(!stopped)off();
 	}
 };
 }
