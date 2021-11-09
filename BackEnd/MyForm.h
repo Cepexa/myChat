@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ServerObject.h"
+#include "Socket.h"
 namespace BackEnd {
 
 	using namespace System;
@@ -23,15 +24,7 @@ namespace BackEnd {
 			//TODO: добавьте код конструктора
 			//
 			msg = new string();
-			int sz = 0;
-			string* addrs = getListIpAdd(sz);
-			for (size_t i = 0; i < sz; i++)
-			{
-				cbIp->Items->Add(marshal_as<String^>(addrs[i]));
-			}
-			if (sz != 0) {
-				cbIp->Text = cbIp->Items[0]->ToString();
-			}
+			showListIpAdd();
 		}
 
 	protected:
@@ -54,7 +47,7 @@ namespace BackEnd {
 	private: System::Windows::Forms::ListBox^ lbClient;
 
 	private: System::Windows::Forms::SplitContainer^ splitContainer1;
-	private: System::Windows::Forms::Timer^ timer1;
+
 	private: System::Windows::Forms::TextBox^ tbContent;
 	private: System::ComponentModel::IContainer^ components;
 
@@ -71,7 +64,6 @@ namespace BackEnd {
 		/// </summary>
 		void InitializeComponent(void)
 		{
-			this->components = (gcnew System::ComponentModel::Container());
 			this->cbIp = (gcnew System::Windows::Forms::ComboBox());
 			this->tbPort = (gcnew System::Windows::Forms::TextBox());
 			this->label1 = (gcnew System::Windows::Forms::Label());
@@ -80,7 +72,6 @@ namespace BackEnd {
 			this->lbClient = (gcnew System::Windows::Forms::ListBox());
 			this->splitContainer1 = (gcnew System::Windows::Forms::SplitContainer());
 			this->tbContent = (gcnew System::Windows::Forms::TextBox());
-			this->timer1 = (gcnew System::Windows::Forms::Timer(this->components));
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->splitContainer1))->BeginInit();
 			this->splitContainer1->Panel1->SuspendLayout();
 			this->splitContainer1->Panel2->SuspendLayout();
@@ -99,6 +90,7 @@ namespace BackEnd {
 			this->cbIp->Name = L"cbIp";
 			this->cbIp->Size = System::Drawing::Size(132, 21);
 			this->cbIp->TabIndex = 0;
+			this->cbIp->MouseClick += gcnew System::Windows::Forms::MouseEventHandler(this, &MyForm::cbIp_MouseClick);
 			// 
 			// tbPort
 			// 
@@ -181,14 +173,9 @@ namespace BackEnd {
 			this->tbContent->Location = System::Drawing::Point(0, 0);
 			this->tbContent->Multiline = true;
 			this->tbContent->Name = L"tbContent";
+			this->tbContent->ScrollBars = System::Windows::Forms::ScrollBars::Vertical;
 			this->tbContent->Size = System::Drawing::Size(177, 192);
 			this->tbContent->TabIndex = 7;
-			// 
-			// timer1
-			// 
-			this->timer1->Enabled = true;
-			this->timer1->Interval = 10;
-			this->timer1->Tick += gcnew System::EventHandler(this, &MyForm::timer1_Tick);
 			// 
 			// MyForm
 			// 
@@ -237,20 +224,29 @@ namespace BackEnd {
 				}
 			}
 			else {
-				stopped = true;
-				btnStart->Text = "Старт";
 				off();
 			}
 		}
-
-		System::Void MyForm_FormClosing(System::Object^ sender, System::Windows::Forms::FormClosingEventArgs^ e) {
-
+		System::Void cbIp_MouseClick(System::Object^ sender, System::Windows::Forms::MouseEventArgs^ e) {
+			showListIpAdd();
 		}
-		System::Void timer1_Tick(System::Object^ sender, System::EventArgs^ e) {
-			if (!msg->empty()) {
-				tbContent->AppendText(marshal_as<String^>(*msg) + "\r\n");
-				msg->clear();
+		void outText(String^ msg) {
+					tbContent->AppendText(msg + "\r\n");
+		}
+		void recvMsg() {
+			try {
+			do {
+				if (!msg->empty()) {
+					try {
+						String^ vMsg = marshal_as<String^>(*msg);
+						this->Invoke(gcnew Action<String^>(this, &MyForm::outText), vMsg);
+						msg->clear();
+					}
+					catch (...) {}
+				}
+			} while (!stopped);
 			}
+			catch (...) {}
 		}
 		void on() {
 			server = new ServerObject();
@@ -259,12 +255,28 @@ namespace BackEnd {
 				marshal_as <string>(tbPort->Text),
 				ref(*msg));//старт потока
 			listenThread.detach();
+			Threading::Thread^ th = gcnew Threading::Thread(gcnew Threading::ThreadStart(this, &MyForm::recvMsg));
+			th->Start();
 		}
 		void off() {
 			server->Disconnect();
 			delete server;
+			btnStart->Text = "Старт";
+			stopped = true;
 		}
-		string* getListIpAdd(int& size) {
+		void showListIpAdd() {
+			size_t sz = 0;
+			string* addrs = getListIpAdd(sz);
+			cbIp->Items->Clear();
+			for (size_t i = 0; i < sz; i++)
+			{
+				cbIp->Items->Add(marshal_as<String^>(addrs[i]));
+			}
+			if (sz != 0) {
+				cbIp->Text = cbIp->Items[0]->ToString();
+			}
+		}
+		string* getListIpAdd(size_t& size) {
 			const int WSVer = 0x101;
 			WSAData wsaData;
 			string* str = nullptr;
@@ -282,9 +294,12 @@ namespace BackEnd {
 						str[i] = inet_ntoa(*(reinterpret_cast<in_addr*>(h->h_addr_list[i])));
 					}
 				}
-				WSACleanup;
+				WSACleanup();
 			}
 			return str;
 		}
-	};
+	System::Void MyForm_FormClosing(System::Object^ sender, System::Windows::Forms::FormClosingEventArgs^ e) {
+		off();
+	}
+};
 }

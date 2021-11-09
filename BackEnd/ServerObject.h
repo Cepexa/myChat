@@ -5,26 +5,29 @@
  {
  private:
      bool stopped;
-     vector<ClientObject*> clients; // все подключения
+     list<ClientObject*>* clients; // все подключения
  public:
      TcpListener* tcpListener; // сервер для прослушивания
      ~ServerObject() {
          if(tcpListener!=nullptr)
          delete tcpListener; 
+         if (clients != nullptr)
+         delete clients;
      }
      ServerObject()
      {
+         clients = new list<ClientObject*>();
          stopped = false;
      }
      void RemoveConnection(string id)
      {
          // получаем по id закрытое подключение
          // и удаляем его из списка подключений
-         if (clients.empty())return;
-         for (vector<ClientObject*>::iterator it = clients.begin(); it != clients.end();) {
-             if ((*it)->Id == id) {
+         if (clients->empty())return;
+         for (list<ClientObject*>::iterator it = clients->begin(); it != clients->end();) {
+             if ((*it)->Id() == id) {
                  (*it)->Close();
-                 clients.erase(it++);
+                 clients->erase(it++);
                  break;
              }
          }
@@ -43,16 +46,15 @@
                  TcpClient* tcpClient = tcpListener->AcceptTcpClient();
                  if (tcpClient->client_socket == INVALID_SOCKET) continue;
                  ClientObject* clientObject = new ClientObject(tcpClient);
-                 clients.push_back(clientObject);
-                 thread clientThread (&ServerObject::Process,this,clientObject,ref(systemMsg));
-                 clientThread.detach();
+                 clientObject->th = new thread(&ServerObject::Process,this,clientObject,ref(systemMsg));
+                 clientObject->th->detach();
+                 clients->push_back(clientObject);
              }
              systemMsg = "Сервер остановлен...";
          }
-         catch (const std::exception& ex)
+         catch (...)
          {
-             systemMsg = ex.what();
-             Disconnect();
+             systemMsg = "Сервер остановлен...";
          }
      }
      void Process(ClientObject* clientObject,string& systemMsg)
@@ -64,7 +66,7 @@
              clientObject->userName =marshal_as<string> ("(" + clientObject->client->client_socket.ToString() + ") ") + clientObject->GetMessage();
              string message = clientObject->userName + " вошел в чат";
              // посылаем сообщение о входе в чат всем подключенным пользователям
-             BroadcastMessage(message, clientObject->Id);
+             BroadcastMessage(message, clientObject->Id());
              systemMsg = message;
              // в бесконечном цикле получаем сообщения от клиента
              while (!stopped)
@@ -72,15 +74,17 @@
                  try
                  {
                      message = clientObject->GetMessage();
+                     if (stopped) { return; }
                      if (message == "")  throw new exception();
                      message = clientObject->userName + ": " + message;
-                     BroadcastMessage(message, clientObject->Id);
+                     BroadcastMessage(message, clientObject->Id());
                      systemMsg = message;
                  }
                  catch (...)
-                 {
+                 {  
+                     if (stopped) {return;}
                      message = clientObject->userName + ": покинул чат";
-                     BroadcastMessage(message, clientObject->Id);
+                     BroadcastMessage(message, clientObject->Id());
                      systemMsg = message;
                      break;
                  }
@@ -101,19 +105,22 @@
          finally
          {
              // в случае выхода из цикла закрываем ресурсы
-             RemoveConnection(clientObject->Id);
+             if (!stopped) RemoveConnection(clientObject->Id());
+
          }
      }
 
      // трансляция сообщения подключенным клиентам
      void BroadcastMessage(string message, string id)
      {
-         if (stopped)return;
-         for (int i = 0; i < clients.size(); i++)
+         for (auto client : *clients)
          {
-             if (clients.at(i)->Id != id) // если id клиента не равно id отправляющего
+             if (client->Id() != id) // если id клиента не равно id отправляющего
              {
-                 clients.at(i)->nStream->Write(clients.at(i)->client->client_socket,message); //передача данных
+                 if (client->nStream->Write(client->client->client_socket, message) <= 0)
+                 {
+                     throw "Error calling send";
+                 }//передача данных
              }
          }
      }
@@ -121,14 +128,13 @@
      void Disconnect()
      {
          stopped = true;
+         BroadcastMessage("Сервер остановлен!", "");
          tcpListener->Stop(); //остановка сервера
-
-         for (int i = 0; i < clients.size(); i++)
+         for (auto client : *clients)
          {
-             clients.at(i)->Close(); //отключение клиента
+             client->Close(); //отключение клиента
          }
-         clients.clear();
-         //Environment::Exit(0); //завершение процесса
+         clients->clear();
      }
  };
     
