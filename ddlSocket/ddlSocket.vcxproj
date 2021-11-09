@@ -152,7 +152,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="NetworkStream.h" />
-    <ClInclude Include="Socket.h" />
     <ClInclude Include="TcpClient.h" />
     <ClInclude Include="TcpListener.h" />
   </ItemGroup>
