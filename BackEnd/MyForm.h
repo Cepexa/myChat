@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Service.h"
+#include "ServerObject.h"
 namespace BackEnd {
 
 	using namespace System;
@@ -79,8 +79,8 @@ namespace BackEnd {
 			this->btnStart = (gcnew System::Windows::Forms::Button());
 			this->lbClient = (gcnew System::Windows::Forms::ListBox());
 			this->splitContainer1 = (gcnew System::Windows::Forms::SplitContainer());
-			this->timer1 = (gcnew System::Windows::Forms::Timer(this->components));
 			this->tbContent = (gcnew System::Windows::Forms::TextBox());
+			this->timer1 = (gcnew System::Windows::Forms::Timer(this->components));
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->splitContainer1))->BeginInit();
 			this->splitContainer1->Panel1->SuspendLayout();
 			this->splitContainer1->Panel2->SuspendLayout();
@@ -175,11 +175,6 @@ namespace BackEnd {
 			this->splitContainer1->SplitterWidth = 3;
 			this->splitContainer1->TabIndex = 6;
 			// 
-			// timer1
-			// 
-			this->timer1->Enabled = true;
-			this->timer1->Tick += gcnew System::EventHandler(this, &MyForm::timer1_Tick);
-			// 
 			// tbContent
 			// 
 			this->tbContent->Dock = System::Windows::Forms::DockStyle::Fill;
@@ -188,6 +183,12 @@ namespace BackEnd {
 			this->tbContent->Name = L"tbContent";
 			this->tbContent->Size = System::Drawing::Size(177, 192);
 			this->tbContent->TabIndex = 7;
+			// 
+			// timer1
+			// 
+			this->timer1->Enabled = true;
+			this->timer1->Interval = 10;
+			this->timer1->Tick += gcnew System::EventHandler(this, &MyForm::timer1_Tick);
 			// 
 			// MyForm
 			// 
@@ -247,7 +248,7 @@ namespace BackEnd {
 		}
 		System::Void timer1_Tick(System::Object^ sender, System::EventArgs^ e) {
 			if (!msg->empty()) {
-				tbContent->AppendText(marshal_as<String^>(*msg)+"\r\n");
+				tbContent->AppendText(marshal_as<String^>(*msg) + "\r\n");
 				msg->clear();
 			}
 		}

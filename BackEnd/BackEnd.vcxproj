@@ -132,7 +132,7 @@
       <FileType>CppForm</FileType>
     </ClInclude>
     <ClInclude Include="NetworkStream.h" />
-    <ClInclude Include="Service.h" />
+    <ClInclude Include="ServerObject.h" />
     <ClInclude Include="TcpClient.h" />
     <ClInclude Include="TcpListener.h" />
   </ItemGroup>
@@ -144,7 +144,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ClientObject.cpp" />
     <ClCompile Include="MyForm.cpp" />
   </ItemGroup>
   <ItemGroup>
