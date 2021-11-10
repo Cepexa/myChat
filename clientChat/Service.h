@@ -1,14 +1,18 @@
 #pragma once
 #include "TcpClient.h"
+#include "nlohmann/json.hpp"
+#include "messageJSon.h"
+using nlohmann::json;
 class ServiceClient
 {
 public:
     string userName;
     string pswrd;
     string host;
-    string port = "8888";
+    string port;
     TcpClient* client;
     NetworkStream* stream;
+    MessageJSon* msgJSon;
     ServiceClient(string host, string port, string userName,string pswrd):
                     host(host),port(port),userName(userName),pswrd(pswrd){
         if (userName == "")
@@ -25,7 +29,15 @@ public:
         }
         //подключение клиента
         stream = client->GetStream(); // получаем поток
-        stream->Write(client->client_socket, userName);
+        msgJSon = new MessageJSon();
+        msgJSon->cmd = command::login;
+        msgJSon->login = userName;
+        msgJSon->password = pswrd;
+        json j{};
+        j["command"] = msgJSon->cmd;
+        j["login"] = msgJSon->login;
+        j["password"] = msgJSon->password;
+        stream->Write(client->client_socket, j.dump());
     }
     //Отправка сообщений
     void SendMessage(string message)

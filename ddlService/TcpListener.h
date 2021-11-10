@@ -1,5 +1,6 @@
 #pragma once
 #include "TcpClient.h"
+
 class TcpListener {
 private:
 	addrinfo hints;
