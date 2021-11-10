@@ -65,6 +65,12 @@
              // получаем имя пользователя
              clientObject->userName =marshal_as<string> ("(" + clientObject->client->client_socket.ToString() + ") ") + clientObject->GetMessage();
              string message = clientObject->userName + " вошел в чат";
+             string answer ="заглушка";
+             //Посылаем ответ пользователю
+             if (clientObject->client->GetStream()->Write(clientObject->client->client_socket, answer) <= 0)
+             {
+                 throw "Error calling send";
+             }//передача данных
              // посылаем сообщение о входе в чат всем подключенным пользователям
              BroadcastMessage(message, clientObject->Id());
              systemMsg = message;

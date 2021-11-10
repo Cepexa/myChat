@@ -12,7 +12,6 @@ public:
     string port;
     TcpClient* client;
     NetworkStream* stream;
-    MessageJSon* msgJSon;
     ServiceClient(string host, string port, string userName,string pswrd):
                     host(host),port(port),userName(userName),pswrd(pswrd){
         if (userName == "")
@@ -29,14 +28,11 @@ public:
         }
         //подключение клиента
         stream = client->GetStream(); // получаем поток
-        msgJSon = new MessageJSon();
-        msgJSon->cmd = command::login;
-        msgJSon->login = userName;
-        msgJSon->password = pswrd;
+        MessageJSon msgJSon(command::login, userName, pswrd);
         json j{};
-        j["command"] = msgJSon->cmd;
-        j["login"] = msgJSon->login;
-        j["password"] = msgJSon->password;
+        j["command"] = msgJSon.cmd;
+        j["login"] = msgJSon.login;
+        j["password"] = msgJSon.password;
         stream->Write(client->client_socket, j.dump());
     }
     //Отправка сообщений

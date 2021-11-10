@@ -3,6 +3,9 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include "nlohmann/json.hpp"
+#include "messageJSon.h"
+using nlohmann::json;
 
 class ClientObject
 {
@@ -39,13 +42,17 @@ public:
         string msg;
         int size = 0;
         size = nStream->Read(client->client_socket,msg);
-
         if (size == 0) {
              // соединение закрыто клиентом
              throw "connection closed...";
         }
         else if (size > 0) {
-             return msg;
+             /// <summary>
+             /// Конвертируем строку обратно в объект и обрабатываем объект
+             /// </summary>
+             /// <returns></returns>
+            MessageJSon msgJSon;
+            return msgJSon.handlerServer(msg);
         }
         else {
              // ошибка получения данных
