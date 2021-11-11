@@ -1,21 +1,53 @@
 #pragma once
 #include "ClientObject.h"
-
+#include <fstream>
+class Person {
+public:
+    string login;
+    string password;
+};
  class ServerObject
  {
  private:
      bool stopped;
-     list<ClientObject*>* clients; // все подключени€
+     list<ClientObject*>* clients;// все подключени€
+     list<Person*>* perons;
  public:
      TcpListener* tcpListener; // сервер дл€ прослушивани€
      ~ServerObject() {
+         for (auto prn : *perons) {
+             delete prn;
+         }
          if(tcpListener!=nullptr)
              delete tcpListener; tcpListener = nullptr;
          if (clients != nullptr)
              delete clients; clients = nullptr;
+         if (perons != nullptr)
+             delete perons; perons = nullptr;
      }
      ServerObject()
      {
+         std::fstream fin("..\\db.JSon");
+         string db; 
+         if (fin.is_open())
+         {
+             while (!fin.eof()) {
+                 string temp;
+                 fin >> temp;
+                 db += temp;
+             }
+         }
+         fin.close();
+         perons = new list<Person*>;
+         json j = json::parse(MessageJSon::convertToUtf8(db));
+         for (size_t i = 0; i < j.size(); i++)
+         {
+             Person* prn = new Person();
+             prn->login = MessageJSon::convertFromUtf8(j[i]["login"].get<string>());
+             prn->password = MessageJSon::convertFromUtf8(j[i]["password"].get<string>());
+             perons->push_back(prn);
+         }
+            
          clients = new list<ClientObject*>();
          stopped = false;
      }
@@ -62,16 +94,22 @@
          try
          {
              clientObject->nStream = clientObject->client->GetStream();
-             // получаем им€ пользовател€
-             clientObject->userName =marshal_as<string> ("(" + clientObject->client->client_socket.ToString() + ") ") + clientObject->GetMessage();
-             string message =" вошел в чат";
-             string answer = "¬ведите сообщение: ";
-             if (true){
+             MessageJSon msgJSon;
+             msgJSon.handlerServer(clientObject->GetMessage());
+             bool statusClient = false;
+             for (auto prn : *perons) {
+                 if (prn->login == msgJSon.login && prn->password == msgJSon.password) {
+                     statusClient = true;
+                     break;
+                 }
+             }
+             string answer;
+             if (statusClient){
                  MessageJSon msgJSon(command::login, status::ok, clientObject->Id());
                  answer = msgJSon.serialize();
              }
              else {
-                 MessageJSon msgJSon(command::login, status::failed, "сообщение об ошибке");
+                 MessageJSon msgJSon(command::login, status::failed, "Ќеверный логин или пароль!");
                  answer = msgJSon.serialize();
              }
              //ѕосылаем ответ пользователю
@@ -81,9 +119,12 @@
                  throw "Error calling send";
              }//передача данных
              ////если авторизаци€ не прошла успешно
-             if (false) {
-                 return;
+             if (!statusClient) {
+                 throw msgJSon.login+": ошибка входа";
              }
+             // получаем им€ пользовател€
+             clientObject->userName =marshal_as<string> ("(" + clientObject->client->client_socket.ToString() + ") ") + msgJSon.login;
+             string message =" вошел в чат";
              // посылаем сообщение о входе в чат всем подключенным пользовател€м
              BroadcastMessage(message, clientObject->Id());
              systemMsg = clientObject->userName + message;
@@ -169,5 +210,6 @@
          tcpListener->Stop(); //остановка сервера
      }
  };
+ 
     
     

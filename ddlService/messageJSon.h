@@ -2,6 +2,8 @@
 #include "pch.h"
 #include <WinSock2.h>
 #include <string>
+#include <codecvt>
+#include <locale>
 #include "nlohmann/json.hpp"
 using nlohmann::json;
 using std::string;
@@ -165,25 +167,42 @@ struct MessageJSon
 			throw "ошибка обработки сервера";
 		}
 	}
-private:
-		static UINT _id;
-	string convertToUtf8(string codepage_str) {
-		int size = MultiByteToWideChar(CP_ACP, MB_COMPOSITE, codepage_str.c_str(), codepage_str.length(), nullptr, 0);
+	static string convertToUtf8(string codepage_str) {
+		using wcvt = std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>;
+		std::u32string wstr(codepage_str.size(), U'\0');
+		std::use_facet<std::ctype<char32_t>>(std::locale(".1251")).widen(codepage_str.data(), codepage_str.data() + codepage_str.size(), &wstr[0]);
+		return wcvt{}.to_bytes(wstr.data(), wstr.data() + wstr.size());
+		/*int size = MultiByteToWideChar(CP_ACP, MB_COMPOSITE, codepage_str.c_str(), codepage_str.length(), nullptr, 0);
 		std::wstring utf16_str(size, '\0');
 		MultiByteToWideChar(CP_ACP, MB_COMPOSITE, codepage_str.c_str(), codepage_str.length(), &utf16_str[0], size);
 		int utf8_size = WideCharToMultiByte(CP_UTF8, 0, utf16_str.c_str(), utf16_str.length(), nullptr, 0, nullptr, nullptr);
 		std::string utf8_str(utf8_size, '\0');
 		WideCharToMultiByte(CP_UTF8, 0, utf16_str.c_str(), utf16_str.length(), &utf8_str[0], utf8_size, nullptr, nullptr);
-		return utf8_str;
+		return utf8_str;*/
 	}
-	string convertFromUtf8(string utf8_str) {
-		int size = MultiByteToWideChar(CP_UTF8, MB_COMPOSITE, utf8_str.c_str(), utf8_str.length(), nullptr, 0);
+	static string convertFromUtf8(string utf8_str) {
+
+		using wcvt = std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>;
+		auto wstr = wcvt{}.from_bytes(utf8_str);
+		std::string result(wstr.size(), '0');
+		std::use_facet<std::ctype<char32_t>>(std::locale(".1251")).narrow(wstr.data(), wstr.data() + wstr.size(), '?', &result[0]);
+		return result;
+		/*std::wstring_convert<std::codecvt_utf8<wchar_t>> wconv;
+		std::wstring wstr = wconv.from_bytes(utf8_str.c_str());
+		// wstring to string
+		std::vector<char> buf(wstr.size());
+		std::use_facet<std::ctype<wchar_t>>(std::locale(".1251")).narrow(wstr.data(), wstr.data() + wstr.size(), '?', buf.data());
+		return string(buf.data(), buf.size());
+		*/
+		/*int size = MultiByteToWideChar(CP_UTF8, MB_COMPOSITE, utf8_str.c_str(), utf8_str.length(), nullptr, 0);
 		std::wstring utf16_str(size, '\0');
 		MultiByteToWideChar(CP_UTF8, MB_COMPOSITE, utf8_str.c_str(), utf8_str.length(), &utf16_str[0], size);
-		int utf8_size = WideCharToMultiByte(CP_UTF8, 0, utf16_str.c_str(), utf16_str.length(), nullptr, 0, nullptr, nullptr);
-		std::string codepage_str(utf8_size, '\0');
-		WideCharToMultiByte(CP_ACP, 0, utf16_str.c_str(), utf16_str.length(), &codepage_str[0], utf8_size, nullptr, nullptr);
-		return codepage_str;
+		int codepage_size = WideCharToMultiByte(CP_UTF8, 0, utf16_str.c_str(), utf16_str.length(), nullptr, 0, nullptr, nullptr);
+		std::string codepage_str(codepage_size, '\0');
+		WideCharToMultiByte(CP_ACP, 0, utf16_str.c_str(), utf16_str.length(), &codepage_str[0], codepage_size, nullptr, nullptr);
+		return codepage_str;*/
 	}
+private:
+		static UINT _id;
 };
 UINT MessageJSon::_id = 0;
