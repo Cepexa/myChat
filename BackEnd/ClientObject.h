@@ -23,18 +23,14 @@ public:
         _Id = boost::uuids::to_string(u);
         client = tcpClient;
     }
+    // закрытие подключения
     ~ClientObject() {
         Close();
-    }
-    // закрытие подключения
-    void Close()
-    {
-        if (nStream != nullptr)
-            nStream->Close(client->client_socket);
-        if (client != nullptr)
-            client->Close();
+        if (client != nullptr) {
+            delete client; client = nullptr;
+        }
         if (th != nullptr)
-            th->~thread();
+            delete th; th = nullptr;
     }
     // чтение входящего сообщения и преобразование в строку
     string GetMessage()
@@ -51,15 +47,23 @@ public:
              /// Конвертируем строку обратно в объект и обрабатываем объект
              /// </summary>
              /// <returns></returns>
-            MessageJSon msgJSon;
-            return msgJSon.handlerServer(msg);
+            //MessageJSon msgJSon;
+            //return msgJSon.handlerServer(msg);
+            return msg;
         }
         else {
              // ошибка получения данных
-             Close();
              throw marshal_as<string>("recv failed: " + size);
         }
     }
-
+    void Close() {
+        if (nStream != nullptr) {
+            nStream->Close(client->client_socket);
+        }
+        if (client != nullptr) {
+            client->Close();
+        }
+        
+    }
 
 };

@@ -11,7 +11,7 @@ public:
     }
     ~TcpClient() {
         if (nStream != nullptr) {
-            delete nStream;
+            delete nStream; nStream = nullptr;
         }
     }
     int Connect(const string& ip, const string& port) {
@@ -39,8 +39,7 @@ public:
         return nStream;
     }
     void Close() {
-        if(nStream!=nullptr)
+        if (nStream != nullptr)
         nStream->Close(client_socket);
     }
-
 };

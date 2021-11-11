@@ -320,17 +320,23 @@ namespace clientChat {
 	private: 
 		ServiceClient* sClient;
 		bool stopped = true;
-		//string* msg;
+		bool noClick = true; //пока не отработал полностью алгоритм кнопки запретить повторное нажатие
 		System::Void btnAuth_Click(System::Object^ sender, System::EventArgs^ e) {
-			try {
+			if (noClick)
+			{
+				noClick = false;
+				try {
 				if (stopped) {
 					on();
-				}else {
+				}
+				else {
 					off();
 				}
 			}
 			catch (const char* ex) {
 				MessageBox::Show(marshal_as<String^>(ex) + "\r\n");
+			}
+			noClick = true;
 			}
 		}
 		bool clickEnter = false;
@@ -366,7 +372,6 @@ namespace clientChat {
 			changeVisibleFields(true);
 			Threading::Thread^ th = gcnew Threading::Thread(gcnew Threading::ThreadStart(this, &MyForm::Receive));
 			th->Start();
-			tbContent->AppendText("Введите сообщение: " + Environment::NewLine);
 		}
 		void off() {
 			if (sClient != nullptr) {
@@ -404,6 +409,7 @@ namespace clientChat {
 				 catch(...)
 				 {
 					 //соединение было прервано
+					 if (stopped)return;
 					 this->Invoke(gcnew Action<String^>(this, &MyForm::outText), "Подключение прервано!");
 					 this->Invoke(gcnew Action(this, &MyForm::off));
 				 }

@@ -172,6 +172,7 @@ namespace BackEnd {
 			this->tbContent->Location = System::Drawing::Point(0, 0);
 			this->tbContent->Multiline = true;
 			this->tbContent->Name = L"tbContent";
+			this->tbContent->ReadOnly = true;
 			this->tbContent->ScrollBars = System::Windows::Forms::ScrollBars::Vertical;
 			this->tbContent->Size = System::Drawing::Size(177, 192);
 			this->tbContent->TabIndex = 7;
@@ -236,6 +237,7 @@ namespace BackEnd {
 			try {
 			do {
 				if (!msg->empty()) {
+					Sleep(1);
 					try {
 						String^ vMsg = marshal_as<String^>(*msg);
 						this->Invoke(gcnew Action<String^>(this, &MyForm::outText), vMsg);

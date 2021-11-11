@@ -10,9 +10,9 @@
      TcpListener* tcpListener; // сервер для прослушивания
      ~ServerObject() {
          if(tcpListener!=nullptr)
-         delete tcpListener; 
+             delete tcpListener; tcpListener = nullptr;
          if (clients != nullptr)
-         delete clients;
+             delete clients; clients = nullptr;
      }
      ServerObject()
      {
@@ -24,10 +24,10 @@
          // получаем по id закрытое подключение
          // и удаляем его из списка подключений
          if (clients->empty())return;
-         for (list<ClientObject*>::iterator it = clients->begin(); it != clients->end();) {
+         for (list<ClientObject*>::iterator it = clients->begin(); it != clients->end();it++) {
              if ((*it)->Id() == id) {
-                 (*it)->Close();
-                 clients->erase(it++);
+                 delete* it;
+                 clients->erase(it);
                  break;
              }
          }
@@ -63,14 +63,29 @@
          {
              clientObject->nStream = clientObject->client->GetStream();
              // получаем имя пользователя
-             clientObject->userName =marshal_as<string> ("(" + clientObject->client->client_socket.ToString() + ") ") + clientObject->GetMessage();
+            // MessageJSon msgJSon;
+            // msgJSon.handlerServer(clientObject->GetMessage());
+             clientObject->userName =marshal_as<string> ("(" + clientObject->client->client_socket.ToString() + ") ") + clientObject->GetMessage();// msgJSon.login;
              string message = clientObject->userName + " вошел в чат";
-             string answer ="заглушка";
+             string answer = "Введите сообщение: ";
+             if (true){
+                 MessageJSon msgJSon(command::login, status::ok, clientObject->Id());
+                 answer = msgJSon.serialize();
+             }
+             else {
+                 MessageJSon msgJSon(command::login, status::failed, "сообщение об ошибке");
+                 answer = msgJSon.serialize();
+             }
              //Посылаем ответ пользователю
+             if (stopped)return;
              if (clientObject->client->GetStream()->Write(clientObject->client->client_socket, answer) <= 0)
              {
                  throw "Error calling send";
              }//передача данных
+             ////если авторизация не прошла успешно
+             if (false) {
+                 return;
+             }
              // посылаем сообщение о входе в чат всем подключенным пользователям
              BroadcastMessage(message, clientObject->Id());
              systemMsg = message;
@@ -88,8 +103,8 @@
                  }
                  catch (...)
                  {  
-                     if (stopped) {return;}
                      message = clientObject->userName + ": покинул чат";
+                     if (stopped) {return;}
                      BroadcastMessage(message, clientObject->Id());
                      systemMsg = message;
                      break;
@@ -119,28 +134,32 @@
      // трансляция сообщения подключенным клиентам
      void BroadcastMessage(string message, string id)
      {
+         if (stopped) { return; }
          for (auto client : *clients)
          {
+             if (stopped) { return; }
              if (client->Id() != id) // если id клиента не равно id отправляющего
              {
+                if (stopped) { return; }
                  if (client->nStream->Write(client->client->client_socket, message) <= 0)
                  {
-                     throw "Error calling send";
+                    if (stopped) { return; }
+                    throw "Error calling send";
                  }//передача данных
              }
+             if (stopped) { return; }
          }
      }
      // отключение всех клиентов
      void Disconnect()
      {
-         stopped = true;
          BroadcastMessage("Сервер остановлен!", "");
-         tcpListener->Stop(); //остановка сервера
-         for (auto client : *clients)
-         {
-             client->Close(); //отключение клиента
+         stopped = true;
+         for (auto client : *clients) {
+             delete client;
          }
          clients->clear();
+         tcpListener->Stop(); //остановка сервера
      }
  };
     

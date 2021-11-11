@@ -10,6 +10,7 @@ public:
     string pswrd;
     string host;
     string port;
+    string uuid;
     TcpClient* client;
     NetworkStream* stream;
     ServiceClient(string host, string port, string userName,string pswrd):
@@ -20,6 +21,12 @@ public:
         }
         client = new TcpClient();
     }
+    ~ServiceClient() {
+        if (client != nullptr) {
+            delete client; client = nullptr;
+        }
+
+    }
     void start()
     {
         if (client->Connect(host, port))
@@ -29,23 +36,30 @@ public:
         //подключение клиента
         stream = client->GetStream(); // получаем поток
         MessageJSon msgJSon(command::login, userName, pswrd);
-        json j{};
-        j["command"] = msgJSon.cmd;
-        j["login"] = msgJSon.login;
-        j["password"] = msgJSon.password;
-        stream->Write(client->client_socket, j.dump());
+        stream->Write(client->client_socket, msgJSon.serialize());
+        //stream->Write(client->client_socket, userName);
     }
     //Отправка сообщений
     void SendMessage(string message)
     {
-        stream->Write(client->client_socket, message);
+        MessageJSon msgJSon(command::message, message, uuid);
+        stream->Write(client->client_socket, msgJSon.serialize());
+        //stream->Write(client->client_socket, message);
     }
     //Получение сообщений
     string ReceiveMessage()
     {
+        MessageJSon msgJSon;
         string msg;
-        stream->Read(client->client_socket, msg);
-        return msg;
+        if (stream->Read(client->client_socket, msg) <= 0) {
+            msg = "Сервер остановлен!";
+        }
+        string answer = msgJSon.deserialize(msg);
+        if (msgJSon.cmd == command::login || msgJSon.cmd == command::ping || msgJSon.cmd == command::logout) {
+            uuid = answer;
+            answer = "ID сессии: " + answer;
+        }
+        return answer;
     }
     void Disconnect()
     {
