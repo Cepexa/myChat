@@ -63,10 +63,8 @@
          {
              clientObject->nStream = clientObject->client->GetStream();
              // получаем имя пользователя
-            // MessageJSon msgJSon;
-            // msgJSon.handlerServer(clientObject->GetMessage());
-             clientObject->userName =marshal_as<string> ("(" + clientObject->client->client_socket.ToString() + ") ") + clientObject->GetMessage();// msgJSon.login;
-             string message = clientObject->userName + " вошел в чат";
+             clientObject->userName =marshal_as<string> ("(" + clientObject->client->client_socket.ToString() + ") ") + clientObject->GetMessage();
+             string message =" вошел в чат";
              string answer = "Введите сообщение: ";
              if (true){
                  MessageJSon msgJSon(command::login, status::ok, clientObject->Id());
@@ -88,7 +86,7 @@
              }
              // посылаем сообщение о входе в чат всем подключенным пользователям
              BroadcastMessage(message, clientObject->Id());
-             systemMsg = message;
+             systemMsg = clientObject->userName + message;
              // в бесконечном цикле получаем сообщения от клиента
              while (!stopped)
              {
@@ -97,16 +95,16 @@
                      message = clientObject->GetMessage();
                      if (stopped) { return; }
                      if (message == "")  throw new exception();
-                     message = clientObject->userName + ": " + message;
+                     message =  message;
                      BroadcastMessage(message, clientObject->Id());
-                     systemMsg = message;
+                     systemMsg = clientObject->userName + ": " + message;
                  }
                  catch (...)
                  {  
-                     message = clientObject->userName + ": покинул чат";
+                     message = "покинул чат";
                      if (stopped) {return;}
                      BroadcastMessage(message, clientObject->Id());
-                     systemMsg = message;
+                     systemMsg = clientObject->userName +": " + message;
                      break;
                  }
              }
@@ -134,14 +132,23 @@
      // трансляция сообщения подключенным клиентам
      void BroadcastMessage(string message, string id)
      {
+         string sender_login;
+         for (auto client : *clients) {
+             if (client->Id() == id) {
+                 sender_login = client->userName;
+             }
+         }
          if (stopped) { return; }
          for (auto client : *clients)
          {
              if (stopped) { return; }
              if (client->Id() != id) // если id клиента не равно id отправляющего
              {
+             MessageJSon msgJSon(command::message, message, sender_login, client->Id());
+             string sendMsg = msgJSon.serialize();
                 if (stopped) { return; }
-                 if (client->nStream->Write(client->client->client_socket, message) <= 0)
+
+                 if (client->nStream->Write(client->client->client_socket, sendMsg) <= 0)
                  {
                     if (stopped) { return; }
                     throw "Error calling send";

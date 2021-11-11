@@ -231,7 +231,7 @@ namespace BackEnd {
 			showListIpAdd();
 		}
 		void outText(String^ msg) {
-					tbContent->AppendText(msg + "\r\n");
+					tbContent->AppendText(Environment::NewLine+ msg);
 		}
 		void recvMsg() {
 			try {

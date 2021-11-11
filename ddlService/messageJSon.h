@@ -97,59 +97,72 @@ struct MessageJSon
 		return result;
 	}
 	string deserialize(string msg) {
-		json j = json::parse(msg);
+		json j = json::parse(convertToUtf8(msg));
 		cmd = j["command"].get<command>();
 		if (cmd == command::login || cmd == command::ping || cmd == command::logout) {
-			return idSession = j["session"].get<string>();
+				idSession = j["session"].get<string>();
+			return convertFromUtf8(idSession);
 		}
 		else if (cmd == command::message_reply) {
 			if (st == status::ok) {
-				return client_id = j["client_id"].get<string>();
+					client_id = j["client_id"].get<string>();
+				return convertFromUtf8(client_id);
 			}
 			else {
-				return message = j["message"].get<string>();
+					message = j["message"].get<string>();
+				return convertFromUtf8(message);
 			}
 		}
 		else if (cmd == command::ping_reply) {
 			if (st == status::failed) {
-				return message = j["message"].get<string>();
+					message = j["message"].get<string>();
+					return convertFromUtf8(message);
+			}
+		}
+		else if (cmd == command::message) {
+			body = j["body"].get<string>();
+			idSession = j["session"].get<string>();
+			try {
+				sender_login = j["sender_login"].get<string>();
+				return convertFromUtf8(sender_login) +": " + convertFromUtf8(body)+"\0";
+			}
+			catch (...) {
+				return convertFromUtf8(body);
 			}
 		}
 	}
 	string handlerServer(string msg) {
 		try {
-		json j = json::parse(msg);
+		json j = json::parse(convertToUtf8(msg));
 			cmd = j["command"].get<command>();
 
 		if (cmd == command::login) {
 			
 			login = j["login"].get<string>();
 
-			password = j["password"].get<string>(); 
-
-			return login;
+			try {
+				password = j["password"].get<string>();
+			}catch(...){}
+			return convertFromUtf8(login);
 			
 		}
 		else if (cmd == command::message) {
-			if (j["sender_login"].get<string>() != "") {
-				body = j["body"].get<string>();
-				sender_login = j["sender_login"].get<string>();
-				idSession = j["session"].get<string>();
-				return sender_login + ": " + body;
-			}
-			else {
 				body = j["body"].get<string>();
 				idSession = j["session"].get<string>();
-				return body;
-			}
+				try { sender_login = j["sender_login"].get<string>(); 
+				return convertFromUtf8(sender_login) + convertFromUtf8(body);
+				}
+				catch (...) {
+				return convertFromUtf8(body);
+				}
 		}
 		else if (cmd == command::HELLO) {
 			auth_method = j["auth_method"].get<string>();
-			return auth_method;
+			return convertFromUtf8(auth_method);
 		}
 		}
 		catch (...) {
-			return "ошибка обработки сервера";
+			throw "ошибка обработки сервера";
 		}
 	}
 private:

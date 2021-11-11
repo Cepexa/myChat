@@ -47,9 +47,9 @@ public:
              /// Конвертируем строку обратно в объект и обрабатываем объект
              /// </summary>
              /// <returns></returns>
-            //MessageJSon msgJSon;
-            //return msgJSon.handlerServer(msg);
-            return msg;
+            MessageJSon msgJSon;
+            return msgJSon.handlerServer(msg);
+            //return msg;
         }
         else {
              // ошибка получения данных

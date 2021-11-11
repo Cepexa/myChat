@@ -349,7 +349,7 @@ namespace clientChat {
 				else {
 					clickEnter = true;
 					sClient->SendMessage(marshal_as<string>(tbMsg->Text));
-					tbContent->AppendText("Вы: " + tbMsg->Text + Environment::NewLine);
+					tbContent->AppendText(Environment::NewLine + "Вы: " + tbMsg->Text);
 					tbMsg->Clear();
 				}
 			}
@@ -416,7 +416,7 @@ namespace clientChat {
 			 }
 		}
 		void outText(String^ msg) {
-			tbContent->AppendText(msg + "\r\n");
+			tbContent->AppendText(Environment::NewLine + msg);
 		}
 		System::Void MyForm_FormClosing(System::Object^ sender, System::Windows::Forms::FormClosingEventArgs^ e) {
 			if (!stopped)off();
