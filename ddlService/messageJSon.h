@@ -107,34 +107,34 @@ struct MessageJSon
 		json j = json::parse(convertToUtf8(msg));
 		cmd = j["command"].get<command>();
 		if (cmd == command::login || cmd == command::ping || cmd == command::logout) {
-				idSession = j["session"].get<string>();
-			return convertFromUtf8(idSession);
+				idSession = convertFromUtf8(j["session"].get<string>());
+			return idSession;
 		}
 		else if (cmd == command::message_reply) {
 			if (st == status::ok) {
-					client_id = j["client_id"].get<string>();
-				return convertFromUtf8(client_id);
+					client_id = convertFromUtf8(j["client_id"].get<string>());
+				return client_id;
 			}
 			else {
-					message = j["message"].get<string>();
-				return convertFromUtf8(message);
+					message = convertFromUtf8(j["message"].get<string>());
+				return message;
 			}
 		}
 		else if (cmd == command::ping_reply) {
 			if (st == status::failed) {
-					message = j["message"].get<string>();
-					return convertFromUtf8(message);
+					message = convertFromUtf8(j["message"].get<string>());
+					return message;
 			}
 		}
 		else if (cmd == command::message) {
-			body = j["body"].get<string>();
-			idSession = j["session"].get<string>();
+			body = convertFromUtf8(j["body"].get<string>());
+			idSession = convertFromUtf8(j["session"].get<string>());
 			try {
-				sender_login = j["sender_login"].get<string>();
-				return convertFromUtf8(sender_login) +": " + convertFromUtf8(body)+"\0";
+				sender_login = convertFromUtf8(j["sender_login"].get<string>());
+				return sender_login +": " + body;
 			}
 			catch (...) {
-				return convertFromUtf8(body);
+				return body;
 			}
 		}
 		

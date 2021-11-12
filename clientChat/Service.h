@@ -59,6 +59,7 @@ public:
             uuid = answer;
             answer = "ID сессии: " + answer;
         }
+  
         return answer;
     }
     void Disconnect()

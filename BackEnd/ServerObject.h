@@ -149,9 +149,10 @@ public:
                  {
                      message = clientObject->GetMessage();
                      if (stopped) { return; }
+                     MessageJSon msgJSon{};
+                     msgJSon.deserialize(message);
                      if (message == "")  throw new exception();
-                     message =  message;
-                     BroadcastMessage(message, clientObject->Id());
+                     BroadcastMessage(msgJSon.body, clientObject->Id());
                      systemMsg = clientObject->userName + ": " + message;
                  }
                  catch (...)
@@ -213,10 +214,12 @@ public:
              if (client->Id() != id) // если id клиента не равно id отправл€ющего
              {
              MessageJSon msgJSon(command::message, message, sender_login, client->Id());
+
              string sendMsg = msgJSon.serialize();
+
                 if (stopped) { return; }
 
-                 if (client->nStream->Write(client->client->client_socket,  sendMsg) <= 0)
+                 if (client->nStream->Write(client->client->client_socket, sendMsg) <= 0)
                  {
                     if (stopped) { return; }
                     throw "Error calling send";
