@@ -27,6 +27,8 @@ public:
      }
      ServerObject()
      {
+         //Загружаю базу клиентов из базы
+         //-----------------------------------
          std::fstream fin("..\\db.JSon");
          string db; 
          if (fin.is_open())
@@ -47,7 +49,7 @@ public:
              prn->password = MessageJSon::convertFromUtf8(j[i]["password"].get<string>());
              perons->push_back(prn);
          }
-            
+         //---------------------------------------   
          clients = new list<ClientObject*>();
          stopped = false;
      }
@@ -58,6 +60,7 @@ public:
          if (clients->empty())return;
          for (list<ClientObject*>::iterator it = clients->begin(); it != clients->end();it++) {
              if ((*it)->Id() == id) {
+
                  delete* it;
                  clients->erase(it);
                  break;
@@ -65,7 +68,7 @@ public:
          }
      }
      // прослушивание входящих подключений
-     void Listen(string ip, string port,string &systemMsg)
+     void Listen(string ip, string port,string &systemMsg, list<string> &ls)
      {
          try
          {
@@ -78,9 +81,10 @@ public:
                  TcpClient* tcpClient = tcpListener->AcceptTcpClient();
                  if (tcpClient->client_socket == INVALID_SOCKET) continue;
                  ClientObject* clientObject = new ClientObject(tcpClient);
-                 clientObject->th = new thread(&ServerObject::Process,this,clientObject,ref(systemMsg));
+                 clientObject->th = new thread(&ServerObject::Process,this,clientObject,ref(systemMsg),ref(ls));
                  clientObject->th->detach();
                  clients->push_back(clientObject);
+                
              }
              systemMsg = "Сервер остановлен...";
          }
@@ -89,7 +93,7 @@ public:
              systemMsg = "Сервер остановлен...";
          }
      }
-     void Process(ClientObject* clientObject,string& systemMsg)
+     void Process(ClientObject* clientObject,string& systemMsg, list<string>& ls)
      {
          try
          {
@@ -125,6 +129,16 @@ public:
              // получаем имя пользователя
              clientObject->userName =marshal_as<string> ("(" + clientObject->client->client_socket.ToString() + ") ") + msgJSon.login;
              string message =" вошел в чат";
+             ///отображаем список юзеров
+             ///-----------------------
+             list<string> persName;
+             for (auto client : *clients) {
+                 persName.push_back(client->userName);
+             }
+             ls = persName;
+             //MessageJSon msgJSon2(command::HELLO, persName);
+             //msgJSon2.serialize();
+             ///-----------------------
              // посылаем сообщение о входе в чат всем подключенным пользователям
              BroadcastMessage(message, clientObject->Id());
              systemMsg = clientObject->userName + message;
@@ -165,8 +179,21 @@ public:
          finally
          {
              // в случае выхода из цикла закрываем ресурсы
-             if (!stopped) RemoveConnection(clientObject->Id());
-
+             if (!stopped) {
+                 RemoveConnection(clientObject->Id());
+                 ///обновляем список юзеров
+                 ///-----------------------
+                 list<string> persName;
+                 for (auto client : *clients) {
+                     persName.push_back(client->userName);
+                 }
+                 if (persName.empty())
+                     persName.push_back("");
+                 ls = persName;
+                 //MessageJSon msgJSon2(command::HELLO, persName);
+                 //msgJSon2.serialize();
+                 ///-----------------------
+             }
          }
      }
 
@@ -189,7 +216,7 @@ public:
              string sendMsg = msgJSon.serialize();
                 if (stopped) { return; }
 
-                 if (client->nStream->Write(client->client->client_socket, sendMsg) <= 0)
+                 if (client->nStream->Write(client->client->client_socket,  sendMsg) <= 0)
                  {
                     if (stopped) { return; }
                     throw "Error calling send";

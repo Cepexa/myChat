@@ -134,6 +134,7 @@ namespace clientChat {
 			this->btnRegist->TabIndex = 3;
 			this->btnRegist->Text = L"Регистрация";
 			this->btnRegist->UseVisualStyleBackColor = true;
+			this->btnRegist->Visible = false;
 			// 
 			// label1
 			// 
@@ -361,6 +362,7 @@ namespace clientChat {
 			}
 		}
 		void on() {
+			tbContent->Clear();
 			sClient = new ServiceClient(
 				marshal_as<string>(tbIpServ->Text),
 				marshal_as<string>(tbPortServ->Text),
@@ -368,7 +370,7 @@ namespace clientChat {
 				marshal_as<string>(tbPass->Text));
 			sClient->start();
 			tbContent->AppendText("Добро пожаловать, " + 
-									marshal_as<String^>(sClient->userName) + "\r\n");
+									marshal_as<String^>(sClient->userName));
 			changeVisibleFields(true);
 			Threading::Thread^ th = gcnew Threading::Thread(gcnew Threading::ThreadStart(this, &MyForm::Receive));
 			th->Start();

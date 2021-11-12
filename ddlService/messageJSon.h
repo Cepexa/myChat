@@ -49,9 +49,6 @@ struct MessageJSon
 				idSession = convertToUtf8(arg2);
 			}
 		}
-		else if (cmd == command::HELLO) {
-			auth_method = convertToUtf8(arg1);
-		}
 	}
 	MessageJSon(command cmd, status st, string arg="") :MessageJSon(cmd) {
 		this->st = st;
@@ -72,12 +69,20 @@ struct MessageJSon
 			}
 		}
 	}
+	MessageJSon(command cmd, list<string> &arg) :MessageJSon(cmd) {
+		if (cmd == command::HELLO) {
+			listPersStr = "";
+			for (auto per : arg) {
+				listPersStr += "\\-" + convertToUtf8(per);
+			}
+		}
+	}
 	command cmd;
 	status st;
 	string idSession;
 	string login;
 	string password;
-	string auth_method;
+	string listPersStr;
 	string message;
 	string body;
 	string client_id;
@@ -90,7 +95,7 @@ struct MessageJSon
 		if (idSession != "")    j["session"]	  = idSession;
 		if (login != "")        j["login"]        = login;
 		if (password != "")     j["password"]     = password;
-		if (auth_method != "")  j["auth_method"]  = auth_method;
+		if (listPersStr != "")  j["listPersStr"]     = listPersStr;
 		if (message != "")      j["message"]      = message;
 		if (body != "")         j["body"]         = body;
 		if (client_id != "")    j["client_id"]    = client_id;
@@ -132,6 +137,26 @@ struct MessageJSon
 				return convertFromUtf8(body);
 			}
 		}
+		
+	}
+	list<string> getListPer(string msg) {
+		json j = json::parse(convertToUtf8(msg));
+		cmd = j["command"].get<command>();
+		if (cmd == command::HELLO) {
+			listPersStr = convertFromUtf8(j["auth_method"].get<string>());
+			list<string> listPers;
+			string temp = "";
+				for (size_t i = 1; i < listPersStr.length(); i++)
+				{
+					if (listPersStr[i - 1] == '\\' && listPersStr[i] == '-') {
+						if (temp != "") listPers.push_back(temp);
+						temp = "";
+						continue;
+					}
+					temp += listPersStr[i];
+				}
+			return listPers;
+		}
 	}
 	string handlerServer(string msg) {
 		try {
@@ -140,27 +165,23 @@ struct MessageJSon
 
 		if (cmd == command::login) {
 			
-			login = j["login"].get<string>();
+			login = convertFromUtf8(j["login"].get<string>());
 
 			try {
-				password = j["password"].get<string>();
+				password = convertFromUtf8(j["password"].get<string>());
 			}catch(...){}
-			return convertFromUtf8(login);
+			return login;
 			
 		}
 		else if (cmd == command::message) {
-				body = j["body"].get<string>();
-				idSession = j["session"].get<string>();
-				try { sender_login = j["sender_login"].get<string>(); 
-				return convertFromUtf8(sender_login) + convertFromUtf8(body);
+				body = convertFromUtf8(j["body"].get<string>());
+				idSession = convertFromUtf8(j["session"].get<string>());
+				try { sender_login = convertFromUtf8(j["sender_login"].get<string>());
+				return sender_login + body;
 				}
 				catch (...) {
-				return convertFromUtf8(body);
+				return body;
 				}
-		}
-		else if (cmd == command::HELLO) {
-			auth_method = j["auth_method"].get<string>();
-			return convertFromUtf8(auth_method);
 		}
 		}
 		catch (...) {

@@ -4,7 +4,19 @@
     "password": ""
   },
   {
-    "login": "UserName2паша",
+    "login": "UserName2",
+    "password": ""
+  },
+  {
+    "login": "Иванов",
+    "password": ""
+  },
+  {
+    "login": "Петров",
+    "password": ""
+  },
+  {
+    "login": "Сидиров",
     "password": ""
   }
 ]

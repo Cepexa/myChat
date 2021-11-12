@@ -23,6 +23,7 @@ namespace BackEnd {
 			//TODO: добавьте код конструктора
 			//
 			msg = new string();
+			pers = new list<string>();
 			showListIpAdd();
 		}
 
@@ -208,6 +209,7 @@ namespace BackEnd {
 		ServerObject* server;
 		bool stopped = true;
 		string* msg;
+		list<string>* pers;
 		//ServerObject server; // сервер
 		System::Void btnStart_Click(System::Object^ sender, System::EventArgs^ e)
 		{
@@ -233,6 +235,13 @@ namespace BackEnd {
 		void outText(String^ msg) {
 					tbContent->AppendText(Environment::NewLine+ msg);
 		}
+		void clearList() {
+			lbClient->Items->Clear();
+		}
+		void outList(String^ msgList) {
+			
+				lbClient->Items->Add(msgList);
+		}
 		void recvMsg() {
 			try {
 			do {
@@ -249,15 +258,37 @@ namespace BackEnd {
 			}
 			catch (...) {}
 		}
+		void recvList() {
+			try {
+			do {
+				if (!pers->empty()) {
+					Sleep(1);
+					try {
+						this->Invoke(gcnew Action(this,&MyForm::clearList));
+						for (auto it : *pers)
+						{
+							String^ vMsg = marshal_as<String^>(it);
+							this->Invoke(gcnew Action<String^>(this, &MyForm::outList), vMsg);
+						}
+						pers->clear();
+					}
+					catch (...) {}
+				}
+			} while (!stopped);
+			}
+			catch (...) {}
+		}
 		void on() {
 			server = new ServerObject();
 			thread listenThread(&ServerObject::Listen, *&server,
 				marshal_as <string>(cbIp->Text),
 				marshal_as <string>(tbPort->Text),
-				ref(*msg));//старт потока
+				ref(*msg), ref(*pers));//старт потока
 			listenThread.detach();
 			Threading::Thread^ th = gcnew Threading::Thread(gcnew Threading::ThreadStart(this, &MyForm::recvMsg));
+			Threading::Thread^ th2 = gcnew Threading::Thread(gcnew Threading::ThreadStart(this, &MyForm::recvList));
 			th->Start();
+			th2->Start();
 		}
 		void off() {
 			server->Disconnect();

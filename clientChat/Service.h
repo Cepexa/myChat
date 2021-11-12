@@ -63,7 +63,8 @@ public:
     }
     void Disconnect()
     {
-        
+        MessageJSon msgJSon(command::logout, uuid);
+        stream->Write(client->client_socket, msgJSon.serialize());
         if (client != nullptr) {
             client->Close();//отключение клиента
         }
